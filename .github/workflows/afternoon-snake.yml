@@ -1,0 +1,53 @@
+name: "🐍 Noon — Snake Phase"
+
+on:
+  schedule:
+    - cron: '0 19 * * *'   # 2 PM EST
+  workflow_dispatch:
+
+concurrency:
+  group: profile-morph
+  cancel-in-progress: true
+
+jobs:
+  snake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Cyber-Violet Snake
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/snake.svg?palette=github-dark&color_snake=#f72585&color_dots=#161b22,#570a57,#702963,#a91079,#f72585
+
+      - name: Move Snake to Root
+        run: mv dist/snake.svg ./snake.svg
+
+      - name: Morph Profile — Noon Phase
+        run: |
+          TIMESTAMP=$(date +%s)
+
+          MESSAGES=(
+            "🐍 Snake slithered through the contribution graph"
+            "🌀 Contribution serpent reborn in cyber-violet"
+            "💜 Noon phase painted in neon purple"
+            "🎨 Visual matrix recalibrated — snake mode"
+            "🔮 Violet serpent deployed to viewport"
+            "⚡ Contribution grid consumed — beautifully"
+          )
+          MSG="${MESSAGES[$((RANDOM % ${#MESSAGES[@]}))]}"
+
+          sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
+          sed -i "/<!-- START_VISUAL -->/a <img src=\"./snake.svg?v=${TIMESTAMP}\" width=\"100%\" />" README.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "${MSG}"
+          git push
