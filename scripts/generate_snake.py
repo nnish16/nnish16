@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
-"""Custom snake animation: sweeps contribution grid, revealing NISHANT.
-Generates an animated SVG using SMIL animations with cyber-violet palette.
+"""Custom snake animation: a visible snake with head + body traverses the
+contribution grid eating all cells except those forming NISHANT.
 """
 import json, os, sys, urllib.request
 
-# --- Grid config (matches GitHub contribution graph) ---
 COLS, ROWS, CELL, GAP, RAD = 52, 7, 11, 3, 2
-
-# --- Cyber-violet palette ---
 BG = "#0d1117"
 EMPTY = "#161b22"
 LV = ["#161b22", "#570a57", "#702963", "#a91079", "#f72585"]
+LOOP, EAT, HOLD = 18, 10, 4  # longer eat = slower visible snake
 
-# --- Animation timing (seconds) ---
-LOOP, EAT, HOLD = 16, 8, 4  # total, eat phase, hold phase
-
-# --- Thick block font (6 wide × 7 tall, 2px-wide strokes) ---
 FONT = {
     'N': [[1,1,0,0,1,1],[1,1,1,0,1,1],[1,1,1,1,1,1],[1,1,0,1,1,1],
           [1,1,0,0,1,1],[1,1,0,0,1,1],[1,1,0,0,1,1]],
@@ -32,7 +26,6 @@ FONT = {
 }
 
 def text_mask(text):
-    """Build 7×52 boolean mask for thick block text centered on grid."""
     mask = [[False]*COLS for _ in range(ROWS)]
     lw, g = 6, 1
     total = len(text)*lw + (len(text)-1)*g
@@ -47,7 +40,6 @@ def text_mask(text):
     return mask
 
 def fetch(user, token):
-    """Fetch contribution calendar via GitHub GraphQL API."""
     q = json.dumps({"query": '{ user(login: "%s") { contributionsCollection { contributionCalendar { weeks { contributionDays { contributionCount weekday } } } } } }' % user})
     try:
         req = urllib.request.Request("https://api.github.com/graphql", q.encode(),
@@ -58,8 +50,7 @@ def fetch(user, token):
         grid = []
         for w in weeks:
             col = [0]*ROWS
-            for d in w["contributionDays"]:
-                col[d["weekday"]] = d["contributionCount"]
+            for d in w["contributionDays"]: col[d["weekday"]] = d["contributionCount"]
             grid.append(col)
         if len(grid) > COLS: grid = grid[-COLS:]
         while len(grid) < COLS: grid.insert(0, [0]*ROWS)
@@ -71,12 +62,11 @@ def fetch(user, token):
 def to_level(c, mx):
     if c == 0 or mx == 0: return 0
     r = c/mx
-    return 1 if r <= 0.25 else 2 if r <= 0.5 else 3 if r <= 0.75 else 4
+    return 1 if r<=0.25 else 2 if r<=0.5 else 3 if r<=0.75 else 4
 
 def generate(out, text="NISHANT", grid=None):
     mask = text_mask(text)
 
-    # Build level grid
     if grid:
         mx = max(max(w) for w in grid)
         lvl = [[to_level(grid[c][r], mx) for c in range(COLS)] for r in range(ROWS)]
@@ -92,26 +82,96 @@ def generate(out, text="NISHANT", grid=None):
     idx = {pos: i for i, pos in enumerate(order)}
     N = len(order)
 
-    # SVG dimensions
     S = CELL + GAP
     pad = 16
     sw, sh = COLS*S + GAP + pad*2, ROWS*S + GAP + pad*2
 
+    def frac(sec): return f"{sec/LOOP:.4f}"
+    def cell_center(r, c):
+        return pad + c*S + GAP + CELL//2, pad + r*S + GAP + CELL//2
+
+    # Pre-compute ALL snake positions (every cell in zigzag order)
+    # Subsample every 2nd for file size balance (still smooth)
+    STEP = 2
+    sampled = list(range(0, N, STEP))
+    if sampled[-1] != N-1:
+        sampled.append(N-1)
+    n_pts = len(sampled)
+
+    # Build position arrays for the snake head
+    # keyTimes MUST span 0.0 to 1.0 for valid SMIL
+    head_cx = []
+    head_cy = []
+    head_kt = []
+    for si in sampled:
+        r, c = order[si]
+        cx, cy = cell_center(r, c)
+        head_cx.append(str(cx))
+        head_cy.append(str(cy))
+        head_kt.append(frac((si / N) * EAT))
+
+    # Add hold position (stay at last point during NISHANT glow)
+    last_r, last_c = order[-1]
+    last_cx, last_cy = cell_center(last_r, last_c)
+    head_cx.append(str(last_cx))
+    head_cy.append(str(last_cy))
+    head_kt.append(frac(EAT + HOLD))
+
+    # Add reset position (jump back to start for next loop)
+    first_r, first_c = order[0]
+    first_cx, first_cy = cell_center(first_r, first_c)
+    head_cx.append(str(first_cx))
+    head_cy.append(str(first_cy))
+    head_kt.append("1")
+
+    # Body segments: same path but offset by `lag` positions behind the head
+    BODY_SEGMENTS = 8
+    BODY_LAG = 3  # positions behind per segment
+    BODY_COLORS = ["#f72585", "#e0127a", "#c91070", "#a91079", "#8e0e6b",
+                   "#702963", "#5a2257", "#451a4a"]
+    BODY_SIZES = [CELL//2+2, CELL//2+1, CELL//2+1, CELL//2, CELL//2,
+                  CELL//2-1, CELL//2-1, CELL//2-2]
+    BODY_OPACITY = ["1", "0.95", "0.9", "0.85", "0.75", "0.65", "0.55", "0.4"]
+
+    def build_body_positions(lag_cells):
+        """Build position arrays for a body segment lagging behind head."""
+        cx_arr, cy_arr = [], []
+        for si in sampled:
+            lagged = max(0, si - lag_cells)
+            r, c = order[lagged]
+            x, y = cell_center(r, c)
+            cx_arr.append(str(x))
+            cy_arr.append(str(y))
+        # Hold position (same as head's last lagged pos)
+        lagged = max(0, N - 1 - lag_cells)
+        r, c = order[lagged]
+        x, y = cell_center(r, c)
+        cx_arr.append(str(x))
+        cy_arr.append(str(y))
+        # Reset position (back to start lagged pos)
+        r, c = order[0]
+        x, y = cell_center(r, c)
+        cx_arr.append(str(x))
+        cy_arr.append(str(y))
+        return cx_arr, cy_arr
+
+    # --- Start SVG ---
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {sw} {sh}">']
 
-    # Glow filter
-    o.append('<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%">')
-    o.append('<feGaussianBlur stdDeviation="2" result="b"/>')
+    o.append('<defs>')
+    o.append('<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">')
+    o.append('<feGaussianBlur stdDeviation="2.5" result="b"/>')
     o.append('<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>')
-    o.append('</filter></defs>')
+    o.append('</filter>')
+    o.append('<filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">')
+    o.append('<feGaussianBlur stdDeviation="4" result="b"/>')
+    o.append('<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>')
+    o.append('</filter>')
+    o.append('</defs>')
 
-    # Background
     o.append(f'<rect width="{sw}" height="{sh}" fill="{BG}" rx="6"/>')
 
-    # Fraction helpers
-    def frac(sec): return f"{sec/LOOP:.4f}"
-
-    # Draw cells
+    # --- Grid cells ---
     for r in range(ROWS):
         for c in range(COLS):
             x = pad + c*S + GAP
@@ -119,61 +179,76 @@ def generate(out, text="NISHANT", grid=None):
             lv = lvl[r][c]
 
             if mask[r][c]:
-                # NISHANT cell — stays visible, pulses when revealed
                 color = LV[max(3, lv)]
                 o.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" '
                          f'rx="{RAD}" fill="{color}" filter="url(#glow)">')
                 o.append(f'<animate attributeName="opacity" '
-                         f'values="0.5;0.5;1;1;0.5" '
+                         f'values="0.4;0.4;1;1;0.4" '
                          f'keyTimes="0;{frac(EAT)};{frac(EAT+1)};{frac(EAT+HOLD)};1" '
                          f'dur="{LOOP}s" repeatCount="indefinite"/>')
                 o.append('</rect>')
             else:
-                # Eaten cell — fades out as snake passes
                 color = LV[lv] if lv > 0 else EMPTY
                 pos = idx[(r, c)]
-                fade_start = (pos / N) * EAT
-                fade_end = min(fade_start + 0.3, EAT)
+                # Cell fades exactly when snake head arrives
+                fade_at = (pos / N) * EAT
+                fade_end = min(fade_at + 0.15, EAT)
 
                 o.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" '
                          f'rx="{RAD}" fill="{color}">')
                 o.append(f'<animate attributeName="opacity" '
                          f'values="1;1;0;0;1;1" '
-                         f'keyTimes="0;{frac(fade_start)};{frac(fade_end)};'
+                         f'keyTimes="0;{frac(fade_at)};{frac(fade_end)};'
                          f'{frac(EAT+HOLD)};{frac(EAT+HOLD+2)};1" '
                          f'dur="{LOOP}s" repeatCount="indefinite"/>')
                 o.append('</rect>')
 
-    # Snake head — moves along zigzag path
-    # Build path as SVG polyline points (subsample every 4th cell for efficiency)
-    step = 4
-    path_pts = []
-    path_times = []
-    for i in range(0, N, step):
-        r, c = order[i]
-        px = pad + c*S + GAP + CELL//2
-        py = pad + r*S + GAP + CELL//2
-        path_pts.append(f"{px},{py}")
-        path_times.append(frac((i/N)*EAT))
-    # Add final point
-    r, c = order[-1]
-    path_pts.append(f"{pad + c*S + GAP + CELL//2},{pad + r*S + GAP + CELL//2}")
-    path_times.append(frac(EAT))
+    # --- Snake body segments (drawn BEFORE head so head is on top) ---
+    kt_str = ";".join(head_kt)
 
-    cx_vals = ";".join(str(pad + order[min(i,N-1)][1]*S + GAP + CELL//2)
-                       for i in range(0, N, step)) + f";{pad + order[-1][1]*S + GAP + CELL//2}"
-    cy_vals = ";".join(str(pad + order[min(i,N-1)][0]*S + GAP + CELL//2)
-                       for i in range(0, N, step)) + f";{pad + order[-1][0]*S + GAP + CELL//2}"
-    kt = ";".join(path_times)
+    # Visibility: visible during eat, hidden during hold, reappear for reset
+    snake_vis = (f'<animate attributeName="opacity" values="1;1;0;0;1" '
+                 f'keyTimes="0;{frac(EAT)};{frac(EAT+0.3)};{frac(EAT+HOLD+1)};1" '
+                 f'dur="{LOOP}s" repeatCount="indefinite"/>')
 
-    o.append(f'<circle r="{CELL//2+1}" fill="{LV[4]}" filter="url(#glow)">')
-    o.append(f'<animate attributeName="cx" values="{cx_vals}" keyTimes="{kt}" '
-             f'dur="{LOOP}s" repeatCount="indefinite"/>')
-    o.append(f'<animate attributeName="cy" values="{cy_vals}" keyTimes="{kt}" '
-             f'dur="{LOOP}s" repeatCount="indefinite"/>')
-    o.append(f'<animate attributeName="opacity" values="1;1;0;0;1" '
-             f'keyTimes="0;{frac(EAT)};{frac(EAT+0.5)};{frac(EAT+HOLD+1)};1" '
-             f'dur="{LOOP}s" repeatCount="indefinite"/>')
+    # Draw body from tail to head (so head renders on top)
+    for seg in range(BODY_SEGMENTS-1, -1, -1):
+        lag = (seg + 1) * BODY_LAG
+        bcx, bcy = build_body_positions(lag)
+        cx_str = ";".join(bcx)
+        cy_str = ";".join(bcy)
+        r_size = BODY_SIZES[seg]
+        color = BODY_COLORS[seg]
+        opac = BODY_OPACITY[seg]
+
+        o.append(f'<circle r="{r_size}" fill="{color}" opacity="{opac}">')
+        o.append(f'<animate attributeName="cx" values="{cx_str}" '
+                 f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+        o.append(f'<animate attributeName="cy" values="{cy_str}" '
+                 f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+        o.append(snake_vis)
+        o.append('</circle>')
+
+    # --- Snake head (on top of everything) ---
+    cx_str = ";".join(head_cx)
+    cy_str = ";".join(head_cy)
+
+    # Head outer glow
+    o.append(f'<circle r="{CELL//2+4}" fill="{LV[4]}" opacity="0.3" filter="url(#glow2)">')
+    o.append(f'<animate attributeName="cx" values="{cx_str}" '
+             f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+    o.append(f'<animate attributeName="cy" values="{cy_str}" '
+             f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+    o.append(snake_vis)
+    o.append('</circle>')
+
+    # Head core
+    o.append(f'<circle r="{CELL//2+2}" fill="{LV[4]}" filter="url(#glow)">')
+    o.append(f'<animate attributeName="cx" values="{cx_str}" '
+             f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+    o.append(f'<animate attributeName="cy" values="{cy_str}" '
+             f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
+    o.append(snake_vis)
     o.append('</circle>')
 
     o.append('</svg>')
