@@ -1,5 +1,5 @@
 ## Hi there 👋
 
 <!-- START_VISUAL -->
-<img src="./shooter.gif?v=1771900193" width="100%" />
+<img src="./snake.svg?v=1771900279" width="100%" />
 <!-- END_VISUAL -->
