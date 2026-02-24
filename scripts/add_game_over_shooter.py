@@ -170,13 +170,14 @@ def heart_pixel_width(px=3, gap=1):
 
 
 def draw_hud(draw, canvas_w, score_now, level, lives_halves,
-             hud_h=HUD_H, px=3):
+             hud_h=HUD_H, px=3, frame_index=0):
     """
     Draw the 34px HUD strip at y=0..hud_h-1.
       lives_halves  : int 0-10 (10 = 5 full hearts, 0 = 5 empty)
       score_now     : current animated score to display
       level         : int, days active (static)
       px            : pixel size for heart sprites
+      frame_index   : used to drive heart blink animation
     """
     # Background strip
     draw.rectangle([0, 0, canvas_w, hud_h - 1], fill=BG_COLOR)
@@ -186,10 +187,15 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
     MARGIN = 8
     heart_gap = 3
     heart_w   = heart_pixel_width(px)
-    heart_h   = 4 * (px + 1)
-    heart_y   = (hud_h - heart_w - 1) // 2 + 1  # vertically centred
+    heart_y   = (hud_h - 4 * (px + 1)) // 2  # vertically centred
 
-    # ---- HEARTS (left) ----
+    # ---- HEARTS (left) — blink when low health ----
+    # Blink: toggle visibility every 8 frames when lives_halves <= 4
+    # Classic arcade: low-health hearts flicker to warn the player
+    low_health   = lives_halves <= 4
+    blink_on     = (frame_index // 8) % 2 == 0   # on for 8 frames, off for 8
+    # Determine which hearts are affected: the rightmost non-empty ones
+    # threshold: first heart from right that is full (would blink)
     hx = MARGIN
     for i in range(5):
         filled_halves = max(0, lives_halves - i * 2)
@@ -199,7 +205,17 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
             state = 'half'
         else:
             state = 'empty'
-        draw_heart(draw, hx, heart_y, px=px, state=state)
+
+        # Blink only the last remaining non-empty heart when health is low
+        is_last_heart = (filled_halves > 0 and
+                         max(0, lives_halves - (i + 1) * 2) == 0)
+        skip = low_health and is_last_heart and not blink_on
+
+        if not skip:
+            draw_heart(draw, hx, heart_y, px=px, state=state)
+        else:
+            # Draw the empty outline in place so the gap is obvious
+            draw_heart(draw, hx, heart_y, px=px, state='empty')
         hx += heart_w + heart_gap
 
     # ---- SCORE (centre) ----
@@ -238,44 +254,39 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
 # ---------------------------------------------------------------------------
 def build_score_curve(n_frames: int, total_score: int, seed: int = 2024) -> list:
     """
-    Return a list of ints length n_frames+1 that ramps 0→total_score.
-    - First 80% of frames: rises to ~95% of total (in random bursts)
-    - Last 20%: reaches exactly total, held there
+    Return a list of ints length n_frames+1 ramps 0 → total_score.
+
+    Strategy: smooth linear base + small random jitter, so the score ticks
+    up steadily throughout the whole game and lands on EXACTLY total_score
+    at frame n_frames.
+
+    The jitter makes it feel like real scoring events (bursts when enemies
+    are hit) without the front-loading plateau bug.
     """
-    rng = random.Random(seed)
-    scores = [0] * (n_frames + 1)
-    if total_score == 0 or n_frames == 0:
-        return scores
+    if n_frames == 0 or total_score == 0:
+        return [0] * (n_frames + 1)
 
-    ramp_end = int(n_frames * 0.80)
-    hold_start = int(n_frames * 0.80)
-    target_at_80 = int(total_score * 0.95)
+    rng     = random.Random(seed)
+    scores  = [0.0] * (n_frames + 1)
 
-    # Random burst accumulation in 0..ramp_end
-    remaining = target_at_80
-    for i in range(1, ramp_end + 1):
-        progress = i / ramp_end
-        # Ease-in: bursts get smaller as we near the end
-        burst_max = max(1, int(total_score * 0.02 * (1 - 0.5 * progress)))
-        burst = rng.randint(0, burst_max)
-        # Occasionally skip (0 delta) for that "waiting" feel
-        if rng.random() < 0.35:
-            burst = 0
-        scores[i] = min(target_at_80, scores[i-1] + burst)
+    # Linear base: each frame gets total_score/n_frames
+    base_delta = total_score / n_frames
 
-    # Ensure monotone up to ramp_end
-    for i in range(1, ramp_end + 1):
-        scores[i] = max(scores[i], scores[i-1])
+    # Jitter budget: ± up to 8% of base_delta per frame
+    jitter_scale = base_delta * 0.08
 
-    # Fill remaining gap from ramp_end to n_frames (linear close-out)
-    gap = total_score - scores[ramp_end]
-    for i in range(ramp_end, n_frames + 1):
-        frac = (i - ramp_end) / max(1, n_frames - ramp_end)
-        scores[i] = round(scores[ramp_end] + gap * frac)
+    for i in range(1, n_frames + 1):
+        jitter = rng.uniform(-jitter_scale, jitter_scale)
+        scores[i] = scores[i - 1] + base_delta + jitter
 
-    # Clamp
-    scores = [max(0, min(total_score, s)) for s in scores]
-    return scores
+    # Force monotone (no negative ticks) and clamp to [0, total]
+    for i in range(1, n_frames + 1):
+        scores[i] = max(scores[i - 1], min(float(total_score), scores[i]))
+
+    # Force exact final value
+    scores[n_frames] = float(total_score)
+
+    return [round(s) for s in scores]
 
 
 # ---------------------------------------------------------------------------
@@ -387,15 +398,17 @@ def add_hud_and_game_over(input_path: str, output_path: str,
     # ---- Build extended HUD frames for original game ----
     all_frames, all_durations = [], []
 
-    def make_extended_frame(game_frame: Image.Image, score_now: int) -> Image.Image:
+    def make_extended_frame(game_frame: Image.Image, score_now: int,
+                             frame_idx: int) -> Image.Image:
         canvas = Image.new('RGB', (canvas_w, canvas_h), BG_COLOR)
         canvas.paste(game_frame, (0, HUD_H))
         draw = ImageDraw.Draw(canvas)
-        draw_hud(draw, canvas_w, score_now, level, lives_halves)
+        draw_hud(draw, canvas_w, score_now, level, lives_halves,
+                 frame_index=frame_idx)
         return canvas
 
     for i, gf in enumerate(orig_frames):
-        all_frames.append(make_extended_frame(gf, score_curve[i]))
+        all_frames.append(make_extended_frame(gf, score_curve[i], i))
         all_durations.append(orig_durations[i])
 
     last_game = orig_frames[-1]
@@ -417,9 +430,10 @@ def add_hud_and_game_over(input_path: str, output_path: str,
         ov_ext.paste(ov_full, (0, HUD_H))
         sc_rgba.alpha_composite(ov_ext)
         result = sc_rgba.convert('RGB')
-        # Draw HUD with locked final score
+        # Draw HUD with locked final score — frame_index continues from game
         draw = ImageDraw.Draw(result)
-        draw_hud(draw, canvas_w, final_score, level, lives_halves)
+        draw_hud(draw, canvas_w, final_score, level, lives_halves,
+                 frame_index=n_orig + 9999)  # high index = blink always on for stage clear
         return result
 
     # Flicker in

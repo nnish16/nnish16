@@ -29,8 +29,14 @@ jobs:
       - name: Install Python dependencies
         run: pip install Pillow
 
-      - name: Add Game Over Animation to Shooter GIF
-        run: python scripts/add_game_over_shooter.py shooter.gif shooter.gif
+      - name: Fetch GitHub Contribution Stats
+        run: python scripts/fetch_github_stats.py > stats.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.METRICS_TOKEN }}
+          GITHUB_USER: nnish16
+
+      - name: Add HUD + Game Over Animation to Shooter GIF
+        run: python scripts/add_game_over_shooter.py shooter.gif shooter.gif --stats stats.json
 
       - name: Generate Animated Skills SVG
         run: python scripts/generate_animated_skills.py
@@ -41,7 +47,7 @@ jobs:
           sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
           sed -i "/<!-- START_VISUAL -->/a <img src=\"./shooter.gif?v=${TIMESTAMP}\" width=\"100%\" />" README.md
           sed -i '/<!-- START_SKILLS -->/,/<!-- END_SKILLS -->/{//!d;}' README.md
-          sed -i "/<!-- START_SKILLS -->/a <img src=\"./animated-skills.svg?v=${TIMESTAMP}\" width=\"100%\" />" README.md
+          sed -i "/<!-- START_SKILLS -->/a <img src=\"./animated-skills.svg?v=${TIMESTAMP}\" width=\"498\" />" README.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
