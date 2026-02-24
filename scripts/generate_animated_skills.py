@@ -50,7 +50,7 @@ def main():
         res = f"{g_open}\n" + \
               f'  <g filter="url(#grayscale_%d)">\n    {inner_svg}\n  </g>\n' % counter + \
               f'  <g opacity="0">\n    {inner_svg}\n' + \
-              f'    <animate attributeName="opacity" values="{v_str}" keyTimes="{k_str}" dur="{GAME_DURATION}s" repeatCount="indefinite" />\n' + \
+              f'    <animate attributeName="opacity" values="{v_str}" keyTimes="{k_str}" dur="{GAME_DURATION}s" fill="freeze" />\n' + \
               f'  </g>\n' + \
               f"{g_close}"
         

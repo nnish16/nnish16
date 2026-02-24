@@ -3,7 +3,7 @@
 <!-- START_SKILLS -->
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="./animated-skills.svg" width="100%" />
+    <img src="./animated-skills.svg" />
   </a>
 </p>
 <!-- END_SKILLS -->
