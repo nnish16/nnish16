@@ -225,9 +225,10 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
     draw_pixel_text(draw, lv_label_text, lv_lbl_x, lbl_y,
                     GREEN_MID, px=label_px, gap=label_gap)
 
-    # Hearts — blink when low health
+    # Hearts — arcade-style pulse: ALL remaining hearts blink together when health is low
+    # Real 8-bit games (Galaga, Space Invaders): every heart on → every heart off → repeat
     low_health = lives_halves <= 4
-    blink_on   = (frame_index // 8) % 2 == 0
+    blink_on   = (frame_index // 4) % 2 == 0  # 4-frame on, 4-frame off (~8Hz at 15fps)
     hx = MARGIN + (block_left_w - hearts_total_w) // 2
     for i in range(5):
         filled_halves = max(0, lives_halves - i * 2)
@@ -237,20 +238,20 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
             state = 'half'
         else:
             state = 'empty'
-        is_last_heart = (filled_halves > 0 and
-                         max(0, lives_halves - (i + 1) * 2) == 0)
-        if low_health and is_last_heart and not blink_on:
+        # When health is low: ALL non-empty hearts flash together
+        if low_health and filled_halves > 0 and not blink_on:
             draw_heart(draw, hx, heart_y, px=heart_px, state='empty')
         else:
             draw_heart(draw, hx, heart_y, px=heart_px, state=state)
         hx += heart_w + heart_gap_h
 
     # ---- SCORE label + value (centre) ----
-    score_str = f"{score_now:06d}"
+    # 5-digit format matches exactly the 5-char "SCORE" label width
+    score_str = f"{min(score_now, 99999):05d}"
     lbl_text  = "SCORE"
     lbl_w  = px_text_w(lbl_text, label_px, label_gap)
     num_w  = px_text_w(score_str, label_px, label_gap)
-    s_block_w = max(lbl_w, num_w)
+    s_block_w = lbl_w   # force block width = label width (both 5 chars now)
     s_cx   = (canvas_w - s_block_w) // 2
 
     draw_pixel_text(draw, lbl_text,
@@ -260,8 +261,9 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
                     s_cx + (s_block_w - num_w) // 2, val_y,
                     GOLD, px=label_px, gap=label_gap)
 
-    # ---- LV label + value (right) ----
-    lv_hdr   = "LV"
+    # ---- LVL label + value (right) ----
+    # "LVL" is 3 chars, level:03d is 3 chars → perfect width match
+    lv_hdr   = "LVL"
     lv_num   = f"{level:03d}"
     lv_hdr_w = px_text_w(lv_hdr, label_px, label_gap)
     lv_num_w = px_text_w(lv_num, label_px, label_gap)

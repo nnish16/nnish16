@@ -47,7 +47,7 @@ jobs:
           sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
           sed -i "/<!-- START_VISUAL -->/a <img src=\"./shooter.gif?v=${TIMESTAMP}\" width=\"100%\" />" README.md
           sed -i '/<!-- START_SKILLS -->/,/<!-- END_SKILLS -->/{//!d;}' README.md
-          sed -i "/<!-- START_SKILLS -->/a <div align=\"center\"><img src=\"./animated-skills.svg?v=${TIMESTAMP}\" width=\"498\" /></div>" README.md
+          sed -i "/<!-- START_SKILLS -->/a <div align=\"center\"><img src=\"./animated-skills.svg?v=${TIMESTAMP}\" width=\"498\" /></div><br><br>" README.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
