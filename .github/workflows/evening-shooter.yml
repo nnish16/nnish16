@@ -1,13 +1,9 @@
-name: "🚀 Dusk — Shooter Phase"
+name: Evening Shooter
 
 on:
   schedule:
-    - cron: '0 1 * * *'    # 8 PM EST (next day UTC)
+    - cron: '0 1 * * *'  # 8 PM EST (next day UTC)
   workflow_dispatch:
-
-concurrency:
-  group: profile-morph
-  cancel-in-progress: true
 
 jobs:
   shooter:
@@ -15,7 +11,6 @@ jobs:
     permissions:
       contents: write
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -25,25 +20,13 @@ jobs:
           token: ${{ secrets.METRICS_TOKEN }}
           output: shooter.gif
 
-      - name: Morph Profile — Dusk Phase
+      - name: Auto-Update README
         run: |
           TIMESTAMP=$(date +%s)
-
-          MESSAGES=(
-            "🚀 Space shooter deployed — evening entertainment loaded"
-            "🎮 Dusk phase activated — game on"
-            "🌌 Evening viewport: interstellar mode engaged"
-            "💫 Profile entered shooter dimension"
-            "🛸 Night shift: space combat visualization online"
-            "⚡ Galactic defense systems rendered"
-          )
-          MSG="${MESSAGES[$((RANDOM % ${#MESSAGES[@]}))]}"
-
           sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
           sed -i "/<!-- START_VISUAL -->/a <img src=\"./shooter.gif?v=${TIMESTAMP}\" width=\"100%\" />" README.md
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "${MSG}"
+          git diff --cached --quiet || git commit -m "🚀 Deploying evening entertainment [shooter]"
           git push

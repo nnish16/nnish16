@@ -1,13 +1,9 @@
-name: "🐍 Noon — Snake Phase"
+name: Afternoon Snake
 
 on:
   schedule:
-    - cron: '0 19 * * *'   # 2 PM EST
+    - cron: '0 19 * * *'  # 2 PM EST
   workflow_dispatch:
-
-concurrency:
-  group: profile-morph
-  cancel-in-progress: true
 
 jobs:
   snake:
@@ -15,11 +11,10 @@ jobs:
     permissions:
       contents: write
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Cyber-Violet Snake
+      - name: Generate Snake SVG
         uses: Platane/snk@v3
         with:
           github_user_name: ${{ github.repository_owner }}
@@ -29,25 +24,13 @@ jobs:
       - name: Move Snake to Root
         run: mv dist/snake.svg ./snake.svg
 
-      - name: Morph Profile — Noon Phase
+      - name: Auto-Update README
         run: |
           TIMESTAMP=$(date +%s)
-
-          MESSAGES=(
-            "🐍 Snake slithered through the contribution graph"
-            "🌀 Contribution serpent reborn in cyber-violet"
-            "💜 Noon phase painted in neon purple"
-            "🎨 Visual matrix recalibrated — snake mode"
-            "🔮 Violet serpent deployed to viewport"
-            "⚡ Contribution grid consumed — beautifully"
-          )
-          MSG="${MESSAGES[$((RANDOM % ${#MESSAGES[@]}))]}"
-
           sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
           sed -i "/<!-- START_VISUAL -->/a <img src=\"./snake.svg?v=${TIMESTAMP}\" width=\"100%\" />" README.md
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "${MSG}"
+          git diff --cached --quiet || git commit -m "🐍 Updating system visuals [snake]"
           git push
