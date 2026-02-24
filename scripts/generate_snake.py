@@ -8,7 +8,7 @@ COLS, ROWS, CELL, GAP, RAD = 52, 7, 11, 3, 2
 BG = "#0d1117"
 EMPTY = "#161b22"
 LV = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
-LOOP, EAT, HOLD = 18, 10, 4  # longer eat = slower visible snake
+LOOP, EAT, HOLD = 20, 10, 6  # longer eat = slower visible snake; extra hold for GAME OVER
 
 FONT = {
     'N': [[1,1,0,0,1,1],[1,1,1,0,1,1],[1,1,1,1,1,1],[1,1,0,1,1,1],
@@ -250,6 +250,150 @@ def generate(out, text="NISHANT", grid=None):
              f'keyTimes="{kt_str}" dur="{LOOP}s" repeatCount="indefinite"/>')
     o.append(snake_vis)
     o.append('</circle>')
+
+    # --- GAME OVER overlay (8-bit pixel style) ---
+    # Timing: appear at EAT+0.5, flicker in, hold until EAT+HOLD-1, then hide
+    GO_START = EAT + 0.5   # 10.5s
+    GO_END   = EAT + HOLD - 1  # 15s
+    GO_CLEAR = EAT + HOLD + 1  # 17s (fully gone before loop)
+
+    def frac_abs(sec):
+        return f"{sec/LOOP:.4f}"
+
+    # 8x5 pixel font for uppercase letters (rows x cols, LSB = leftmost)
+    PIXEL_FONT = {
+        'G': [
+            [0,1,1,1,0],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],
+            [1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0],
+        ],
+        'A': [
+            [0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],
+            [1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],
+        ],
+        'M': [
+            [1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],
+            [1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],
+        ],
+        'E': [
+            [1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],
+            [1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1],
+        ],
+        'O': [
+            [0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],
+            [1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0],
+        ],
+        'V': [
+            [1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],
+            [1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],
+        ],
+        'R': [
+            [1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],
+            [1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1],
+        ],
+        ' ': [[0,0,0,0,0]]*7,
+    }
+
+    PIXEL_SIZE = 4
+    PIXEL_GAP = 1
+    CHAR_W = 5 * (PIXEL_SIZE + PIXEL_GAP)
+    CHAR_H = 7 * (PIXEL_SIZE + PIXEL_GAP)
+    CHAR_GAP = PIXEL_SIZE + 1
+
+    GO_COLOR1 = "#39d353"   # bright green
+    GO_COLOR2 = "#ff0000"   # red accent for 'OVER'
+    GO_SHADOW = "#0a660d"
+
+    def render_pixel_text(text, start_x, start_y, color):
+        """Render pixel-art text, return list of SVG rect strings."""
+        elems = []
+        cx = start_x
+        for ch in text:
+            bitmap = PIXEL_FONT.get(ch, PIXEL_FONT[' '])
+            for row_i, row in enumerate(bitmap):
+                for col_i, px in enumerate(row):
+                    if px:
+                        px_x = cx + col_i * (PIXEL_SIZE + PIXEL_GAP)
+                        px_y = start_y + row_i * (PIXEL_SIZE + PIXEL_GAP)
+                        elems.append(
+                            f'<rect x="{px_x}" y="{px_y}" '
+                            f'width="{PIXEL_SIZE}" height="{PIXEL_SIZE}" '
+                            f'fill="{color}" rx="0.5"/>'
+                        )
+            cx += CHAR_W + CHAR_GAP
+        return elems
+
+    # Calculate total text width for centering
+    def text_pixel_width(text):
+        return len(text) * (CHAR_W + CHAR_GAP) - CHAR_GAP
+
+    total_w = max(text_pixel_width("GAME"), text_pixel_width("OVER"))
+    go_x = (sw - total_w) // 2
+    go_y1 = sh // 2 - CHAR_H - 4   # "GAME" row
+    go_y2 = sh // 2 + 4             # "OVER" row
+
+    # Background panel behind GAME OVER text (semi-transparent dark box)
+    panel_pad = 8
+    panel_x = go_x - panel_pad
+    panel_y = go_y1 - panel_pad
+    panel_w = total_w + 2 * panel_pad
+    panel_h = (CHAR_H * 2) + 12 + 2 * panel_pad
+
+    # Flicker keyTimes & values:
+    # Hidden -> quick flickers -> visible -> hold -> fade out -> hidden
+    flicker_kt = f"0;{frac_abs(GO_START)};{frac_abs(GO_START+0.1)};{frac_abs(GO_START+0.2)};{frac_abs(GO_START+0.4)};{frac_abs(GO_START+0.6)};{frac_abs(GO_END)};{frac_abs(GO_CLEAR)};1"
+    panel_vis  = f"values=\"0;0;0.7;0;0.9;0.92;0.92;0;0\"  keyTimes=\"{flicker_kt}\"  dur=\"{LOOP}s\" repeatCount=\"indefinite\""
+    text_vis   = f"values=\"0;0;1;0;1;1;1;0;0\"  keyTimes=\"{flicker_kt}\"  dur=\"{LOOP}s\" repeatCount=\"indefinite\""
+
+    # Shadow panel (gives depth)
+    o.append(f'<rect x="{panel_x+3}" y="{panel_y+3}" width="{panel_w}" height="{panel_h}" '
+             f'rx="2" fill="{GO_SHADOW}" opacity="0">')
+    o.append(f'<animate attributeName="opacity" {panel_vis}/>')
+    o.append('</rect>')
+
+    # Main dark panel
+    o.append(f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+             f'rx="2" fill="#0d1117" opacity="0">')
+    o.append(f'<animate attributeName="opacity" {panel_vis}/>')
+    o.append('</rect>')
+
+    # Border around panel (8-bit style double border)
+    o.append(f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+             f'rx="2" fill="none" stroke="{GO_COLOR1}" stroke-width="2" opacity="0">')
+    o.append(f'<animate attributeName="opacity" {text_vis}/>')
+    o.append('</rect>')
+    o.append(f'<rect x="{panel_x+3}" y="{panel_y+3}" width="{panel_w-6}" height="{panel_h-6}" '
+             f'rx="1" fill="none" stroke="{GO_COLOR1}" stroke-width="1" opacity="0">')
+    o.append(f'<animate attributeName="opacity" {text_vis}/>')
+    o.append('</rect>')
+
+    # Render GAME pixel text
+    game_rects = render_pixel_text("GAME", go_x, go_y1, GO_COLOR1)
+    for r_elem in game_rects:
+        # Wrap in group with animation
+        base = r_elem[:-2]  # remove '/>' to add children
+        o.append(base + ' opacity="0">')
+        o.append(f'<animate attributeName="opacity" {text_vis}/>')
+        o.append('</rect>')
+
+    # Render OVER pixel text (in red/danger color)
+    over_rects = render_pixel_text("OVER", go_x, go_y2, GO_COLOR2)
+    for r_elem in over_rects:
+        base = r_elem[:-2]
+        o.append(base + ' opacity="0">')
+        o.append(f'<animate attributeName="opacity" {text_vis}/>')
+        o.append('</rect>')
+
+    # Blinking "PRESS START" prompt (simple text blink during hold)
+    blink_y = go_y2 + CHAR_H + 6
+    blink_kt  = f"0;{frac_abs(GO_START+0.6)};{frac_abs(GO_START+1.0)};{frac_abs(GO_START+1.5)};{frac_abs(GO_START+2.0)};{frac_abs(GO_END)};{frac_abs(GO_CLEAR)};1"
+    blink_vis = f"values=\"0;0;1;0;1;1;0;0\" keyTimes=\"{blink_kt}\" dur=\"{LOOP}s\" repeatCount=\"indefinite\""
+    o.append(f'<text x="{sw//2}" y="{blink_y}" '
+             f'font-family=\"monospace\" font-size=\"6\" '
+             f'fill=\"#ffffff\" text-anchor=\"middle\" opacity=\"0\" '
+             f'style=\"image-rendering:pixelated;font-weight:bold;letter-spacing:1px\">')
+    o.append('RESTARTING...')
+    o.append(f'<animate attributeName="opacity" {blink_vis}/>')
+    o.append('</text>')
 
     o.append('</svg>')
 
