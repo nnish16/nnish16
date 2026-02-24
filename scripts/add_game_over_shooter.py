@@ -26,7 +26,7 @@ RED_EMPTY  = (80, 20, 20)       # empty heart outline
 WHITE      = (255, 255, 255)
 
 # HUD strip dimensions
-HUD_H      = 34                  # pixels above the game
+HUD_H      = 52                  # pixels above the game (needs 2 rows: label + values)
 
 # ---------------------------------------------------------------------------
 # 5×7 pixel-art font  (7 rows × 5 cols)
@@ -172,31 +172,63 @@ def heart_pixel_width(px=3, gap=1):
 def draw_hud(draw, canvas_w, score_now, level, lives_halves,
              hud_h=HUD_H, px=3, frame_index=0):
     """
-    Draw the 34px HUD strip at y=0..hud_h-1.
-      lives_halves  : int 0-10 (10 = 5 full hearts, 0 = 5 empty)
-      score_now     : current animated score to display
-      level         : int, days active (static)
-      px            : pixel size for heart sprites
-      frame_index   : used to drive heart blink animation
+    Draw the HUD strip at y=0..hud_h-1.  Layout (two rows):
+      Row 1  y=4   : "LIVES"  |  "SCORE"  |  "LV"    — tiny labels, px=2
+      Row 2  y=27  : hearts   |  score #  |  level #  — values, px=2 for numbers
+      Separator line at hud_h-1 (well below all text)
     """
-    # Background strip
+    label_px = 2
+    label_gap = 1
+    # Each pixel-text row height at px=2: 7*(2+1)=21px
+    ROW_H    = 7 * (label_px + label_gap)  # 21
+    lbl_y    = 4                            # top of label row
+    val_y    = lbl_y + ROW_H + 2           # top of value row (y=27)
+    MARGIN   = 8
+    heart_px = px                           # heart pixel size
+    heart_gap_h = 3                         # gap between hearts
+    heart_w  = heart_pixel_width(heart_px)
+    # Hearts are 4 rows tall: 4*(px+1)=16px at px=3
+    heart_h  = 4 * (heart_px + 1)
+    heart_y  = val_y + (ROW_H - heart_h) // 2  # vertically centred in value row
+
+    # ---- Background + separator line (at very bottom, clear of text) ----
     draw.rectangle([0, 0, canvas_w, hud_h - 1], fill=BG_COLOR)
-    # Bottom separator line (green glow)
-    draw.line([(0, hud_h - 1), (canvas_w, hud_h - 1)], fill=GREEN_DIM, width=1)
+    # Only draw separator segments where there is NO text above them
+    # to avoid the "line through text" look. Draw left/right gaps only.
+    lives_block_right = MARGIN + 5 * (heart_w + heart_gap_h) + 16  # rough right edge of LIVES block
+    score_cx  = canvas_w // 2
+    score_hw  = 60   # half-width of score block approx
+    lv_left   = canvas_w - MARGIN - 60
+    # Draw separator line at midpoint — between label row (ends ~y=25) and value row (starts y=27)
+    line_y = hud_h // 2   # y=26
+    gap = 6
+    draw.line([(0, line_y), (MARGIN - gap, line_y)],
+              fill=GREEN_DIM, width=1)
+    draw.line([(lives_block_right + gap, line_y),
+               (score_cx - score_hw - gap, line_y)],
+              fill=GREEN_DIM, width=1)
+    draw.line([(score_cx + score_hw + gap, line_y),
+               (lv_left - gap, line_y)],
+              fill=GREEN_DIM, width=1)
+    draw.line([(canvas_w - MARGIN + gap, line_y),
+               (canvas_w, line_y)],
+              fill=GREEN_DIM, width=1)
 
-    MARGIN = 8
-    heart_gap = 3
-    heart_w   = heart_pixel_width(px)
-    heart_y   = (hud_h - 4 * (px + 1)) // 2  # vertically centred
 
-    # ---- HEARTS (left) — blink when low health ----
-    # Blink: toggle visibility every 8 frames when lives_halves <= 4
-    # Classic arcade: low-health hearts flicker to warn the player
-    low_health   = lives_halves <= 4
-    blink_on     = (frame_index // 8) % 2 == 0   # on for 8 frames, off for 8
-    # Determine which hearts are affected: the rightmost non-empty ones
-    # threshold: first heart from right that is full (would blink)
-    hx = MARGIN
+    # ---- LIVES label + hearts (left) ----
+    lv_label_text = "LIVES"
+    lv_label_w = px_text_w(lv_label_text, label_px, label_gap)
+    hearts_total_w = 5 * heart_w + 4 * heart_gap_h
+    block_left_w = max(lv_label_w, hearts_total_w)
+    lv_lbl_x = MARGIN + (block_left_w - lv_label_w) // 2
+
+    draw_pixel_text(draw, lv_label_text, lv_lbl_x, lbl_y,
+                    GREEN_MID, px=label_px, gap=label_gap)
+
+    # Hearts — blink when low health
+    low_health = lives_halves <= 4
+    blink_on   = (frame_index // 8) % 2 == 0
+    hx = MARGIN + (block_left_w - hearts_total_w) // 2
     for i in range(5):
         filled_halves = max(0, lives_halves - i * 2)
         if filled_halves >= 2:
@@ -205,48 +237,43 @@ def draw_hud(draw, canvas_w, score_now, level, lives_halves,
             state = 'half'
         else:
             state = 'empty'
-
-        # Blink only the last remaining non-empty heart when health is low
         is_last_heart = (filled_halves > 0 and
                          max(0, lives_halves - (i + 1) * 2) == 0)
-        skip = low_health and is_last_heart and not blink_on
-
-        if not skip:
-            draw_heart(draw, hx, heart_y, px=px, state=state)
+        if low_health and is_last_heart and not blink_on:
+            draw_heart(draw, hx, heart_y, px=heart_px, state='empty')
         else:
-            # Draw the empty outline in place so the gap is obvious
-            draw_heart(draw, hx, heart_y, px=px, state='empty')
-        hx += heart_w + heart_gap
+            draw_heart(draw, hx, heart_y, px=heart_px, state=state)
+        hx += heart_w + heart_gap_h
 
-    # ---- SCORE (centre) ----
-    # Label "SCORE" tiny (px=2)
-    label_px = 2
+    # ---- SCORE label + value (centre) ----
     score_str = f"{score_now:06d}"
     lbl_text  = "SCORE"
-    lbl_w = px_text_w(lbl_text, label_px)
-    num_w = px_text_w(score_str, label_px)
-    block_w = max(lbl_w, num_w)
-    cx = (canvas_w - block_w) // 2
+    lbl_w  = px_text_w(lbl_text, label_px, label_gap)
+    num_w  = px_text_w(score_str, label_px, label_gap)
+    s_block_w = max(lbl_w, num_w)
+    s_cx   = (canvas_w - s_block_w) // 2
 
-    lbl_y = 4
-    num_y = lbl_y + 7 * (label_px + 1) + 2
-    draw_pixel_text(draw, lbl_text, cx + (block_w - lbl_w) // 2, lbl_y,
-                    GREEN_MID, px=label_px)
-    draw_pixel_text(draw, score_str, cx + (block_w - num_w) // 2, num_y,
-                    GOLD, px=label_px)
+    draw_pixel_text(draw, lbl_text,
+                    s_cx + (s_block_w - lbl_w) // 2, lbl_y,
+                    GREEN_MID, px=label_px, gap=label_gap)
+    draw_pixel_text(draw, score_str,
+                    s_cx + (s_block_w - num_w) // 2, val_y,
+                    GOLD, px=label_px, gap=label_gap)
 
-    # ---- LEVEL (right) ----
-    lv_text = f"LV"
-    lv_num  = f"{level:03d}"
-    lv_w1 = px_text_w(lv_text, label_px)
-    lv_w2 = px_text_w(lv_num, label_px)
-    lv_block = max(lv_w1, lv_w2)
-    rx = canvas_w - MARGIN - lv_block
+    # ---- LV label + value (right) ----
+    lv_hdr   = "LV"
+    lv_num   = f"{level:03d}"
+    lv_hdr_w = px_text_w(lv_hdr, label_px, label_gap)
+    lv_num_w = px_text_w(lv_num, label_px, label_gap)
+    lv_blk   = max(lv_hdr_w, lv_num_w)
+    lv_rx    = canvas_w - MARGIN - lv_blk
 
-    draw_pixel_text(draw, lv_text, rx + (lv_block - lv_w1) // 2, lbl_y,
-                    GREEN_MID, px=label_px)
-    draw_pixel_text(draw, lv_num, rx + (lv_block - lv_w2) // 2, num_y,
-                    SHIP_BLUE, px=label_px)
+    draw_pixel_text(draw, lv_hdr,
+                    lv_rx + (lv_blk - lv_hdr_w) // 2, lbl_y,
+                    GREEN_MID, px=label_px, gap=label_gap)
+    draw_pixel_text(draw, lv_num,
+                    lv_rx + (lv_blk - lv_num_w) // 2, val_y,
+                    SHIP_BLUE, px=label_px, gap=label_gap)
 
 
 # ---------------------------------------------------------------------------
