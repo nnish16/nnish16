@@ -7,5 +7,5 @@
 </p>
 
 <!-- START_VISUAL -->
-<img src="./snake.svg?v=1771902827" width="100%" />
+<img src="./snake.svg?v=1771902954" width="100%" />
 <!-- END_VISUAL -->
