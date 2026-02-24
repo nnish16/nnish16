@@ -7,7 +7,7 @@ import json, os, sys, urllib.request
 COLS, ROWS, CELL, GAP, RAD = 52, 7, 11, 3, 2
 BG = "#0d1117"
 EMPTY = "#161b22"
-LV = ["#161b22", "#570a57", "#702963", "#a91079", "#f72585"]
+LV = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
 LOOP, EAT, HOLD = 18, 10, 4  # longer eat = slower visible snake
 
 FONT = {
@@ -127,8 +127,8 @@ def generate(out, text="NISHANT", grid=None):
     # Body segments: same path but offset by `lag` positions behind the head
     BODY_SEGMENTS = 8
     BODY_LAG = 3  # positions behind per segment
-    BODY_COLORS = ["#f72585", "#e0127a", "#c91070", "#a91079", "#8e0e6b",
-                   "#702963", "#5a2257", "#451a4a"]
+    BODY_COLORS = ["#39d353", "#31c14a", "#29ae41", "#229c38", "#1a8a2f",
+                   "#127826", "#0a661d", "#025414"]
     BODY_SIZES = [CELL//2+2, CELL//2+1, CELL//2+1, CELL//2, CELL//2,
                   CELL//2-1, CELL//2-1, CELL//2-2]
     BODY_OPACITY = ["1", "0.95", "0.9", "0.85", "0.75", "0.65", "0.55", "0.4"]
