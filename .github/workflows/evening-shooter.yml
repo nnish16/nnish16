@@ -26,6 +26,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install Python dependencies
+        run: pip install Pillow
+
+      - name: Add Game Over Animation to Shooter GIF
+        run: python scripts/add_game_over_shooter.py shooter.gif shooter.gif
+
       - name: Generate Animated Skills SVG
         run: python scripts/generate_animated_skills.py
 
@@ -41,3 +47,4 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "🚀 Deploying evening entertainment [shooter]"
           git push
+
