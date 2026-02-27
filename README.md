@@ -5,5 +5,5 @@
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./shooter.gif?v=1772163148" width="100%" />
+<img src="./snake.svg?v=1772220755" width="100%" />
 <!-- END_VISUAL -->
