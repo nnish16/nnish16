@@ -1,8 +1,8 @@
-name: Morning Metrics
+name: Morning Metrics (Paused)
 
 on:
-  schedule:
-    - cron: '0 13 * * *'  # 8 AM EST
+  # schedule:
+  #   - cron: '0 13 * * *'  # 8 AM EST — paused due to recurring failures
   workflow_dispatch:
 
 jobs:
