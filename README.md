@@ -1,9 +1,9 @@
 ## Months and months of hard work and consistency destroyed in 2mins. Enjoy the show!
 
 <!-- START_SKILLS -->
-<div align="center"><img src="./animated-skills.svg?v=1774496997" width="498" /></div><br><br>
+<div align="center"><img src="./animated-skills.svg?v=1774583504" width="498" /></div><br><br>
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./snake.svg?v=1774554849" width="100%" />
+<img src="./shooter.gif?v=1774583504" width="100%" />
 <!-- END_VISUAL -->
