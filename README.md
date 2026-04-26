@@ -1,12 +1,27 @@
-<h1 align="center">Hi, I'm Nishant 👋</h1>
+<h1 align="center">Nishant Sarang</h1>
 
 <p align="center">
-  <strong>Full-stack engineer shipping AI-powered products</strong><br>
-  Building at the intersection of LLMs, real-time systems, and thoughtful UX<br><br>
-  <a href="https://www.nishants.site">🌐 Website</a> · 
-  <a href="https://linkedin.com/in/nishantsarang">💼 LinkedIn</a> · 
+  <strong>AI Product Manager · Full-Stack Engineer · Product Builder</strong><br>
+  <em>I think in products and ship in code — the full loop, no handoffs</em>
+</p>
+
+<p align="center">
+  <a href="https://www.nishants.site">🌐 Website</a> ·
+  <a href="https://linkedin.com/in/nishantsarang">💼 LinkedIn</a> ·
   <a href="https://twitter.com/nnish_16">𝕏 Twitter</a>
 </p>
+
+---
+
+Most PMs hand specs to engineers. Most engineers wait for specs.<br>
+I do both — from user insight and zero-to-one strategy to the system architecture and the last commit.
+
+I work at the **overlap of AI product thinking and full-stack execution**: defining what to build, why it matters, and then building it myself — end to end, with production-grade code and real users in mind.
+
+**What that looks like in practice:**
+- Identify a real friction point → design the product experience → ship the AI-powered system that solves it
+- Think in PRDs *and* pull requests — strategy doesn't stop at a doc
+- Own the full surface: UX decisions, model integration, infra, CI/CD
 
 ---
 
@@ -14,18 +29,18 @@
 
 | Project | What it does | Stack |
 |---------|-------------|-------|
-| 🎙️ **[AI Interview Assistant](https://github.com/nnish16/ai-interview-assistant)** | Real-time interview coach — transcribes calls and generates context-aware answers from your resume | Python · PyQt6 · Whisper · LLMs |
-| 📝 **[NoteFlow](https://github.com/nnish16/Granola_bar)** | Privacy-first meeting notes — captures audio, transcribes locally, AI-enhances with decisions & action items | Electron · React · Whisper · Gemini |
+| 🎙️ **[AI Interview Assistant](https://github.com/nnish16/ai-interview-assistant)** | Real-time coach — transcribes live calls, surfaces context-aware answers from your resume | Python · Whisper · LLMs |
+| 📝 **[NoteFlow](https://github.com/nnish16/Granola_bar)** | Privacy-first meeting intelligence — local transcription, AI-enhanced decisions & action items | Electron · React · Whisper · Gemini |
 | 📄 **[W.E.E.K.D.A.Y. Agent](https://github.com/nnish16/Monday2friday)** | Dual-persona resume optimizer with AVCR framework scoring | React · TypeScript · Gemini |
-| ⚔️ **[Council of Intelligence](https://github.com/nnish16/Illuminati)** | Five specialized AI agents debate your hardest questions | React · TypeScript · Gemini 3 Pro |
+| ⚔️ **[Council of Intelligence](https://github.com/nnish16/Illuminati)** | Five specialized AI agents that debate your hardest questions | React · TypeScript · Gemini 3 Pro |
 | 🏋️ **[LeetCode Solutions](https://github.com/nnish16/leetcode-solutions)** | 68+ solutions with a deterministic CLI planner/runner | Python · Browser Automation |
 
-### What I care about
+### How I think
 
-- **AI agents that do real work** — not chatbot wrappers, but systems that listen, reason, and act
-- **Privacy-first design** — local transcription, on-device processing, no cloud audio uploads
-- **Building in public** — every project ships with docs, CI, and a clear README
-- **Open source** — contributions welcome on everything above
+- **Product first, code second** — every feature starts with a clear why, not a cool how
+- **AI that earns its place** — agents that take actions and reduce real friction, not demos
+- **Privacy by default** — on-device processing, local models, no cloud audio leakage
+- **Ship, learn, iterate** — every project has CI, docs, and real users from day one
 
 ---
 
