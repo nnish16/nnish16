@@ -40,9 +40,9 @@ DevOps       GitHub Actions · Docker · Vercel
 ---
 
 <!-- START_SKILLS -->
-<div align="center"><img src="./animated-skills.svg?v=1777089253" width="498" /></div><br><br>
+<div align="center"><img src="./animated-skills.svg?v=1777177510" width="498" /></div><br><br>
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./snake.svg?v=1777146151" width="100%" />
+<img src="./shooter.gif?v=1777177510" width="100%" />
 <!-- END_VISUAL -->
