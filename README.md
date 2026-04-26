@@ -27,22 +27,24 @@
 - **Building in public** — every project ships with docs, CI, and a clear README
 - **Open source** — contributions welcome on everything above
 
-### Tech I reach for
-
-```
-Languages    Python · TypeScript · Java · SQL
-Frontend     React · React Native · Expo · Tailwind · Vite
-AI/ML        Gemini · Whisper · LangChain · SentenceTransformers · RAG
-Backend      Node.js · Electron · Firebase · SQLite · PostgreSQL
-DevOps       GitHub Actions · Docker · Vercel
-```
-
 ---
 
 <!-- START_SKILLS -->
-<div align="center"><img src="./animated-skills.svg?v=1777177510" width="498" /></div><br><br>
+<div align="center"><img src="./animated-skills.svg?v=1777177510" width="498" /></div><br>
+
+<div align="center">
+
+| | |
+|---|---|
+| **Languages** | Python · TypeScript · Java · SQL |
+| **Frontend** | React · React Native · Expo · Tailwind · Vite |
+| **AI/ML** | Gemini · Whisper · LangChain · SentenceTransformers · RAG |
+| **Backend** | Node.js · Electron · Firebase · SQLite · PostgreSQL |
+| **DevOps** | GitHub Actions · Docker · Vercel |
+
+</div><br>
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./snake.svg?v=1777232704" width="100%" />
+<img src="./shooter.gif?v=1772163148" width="100%" />
 <!-- END_VISUAL -->

@@ -47,10 +47,42 @@ jobs:
           sed -i '/<!-- START_VISUAL -->/,/<!-- END_VISUAL -->/{//!d;}' README.md
           sed -i "/<!-- START_VISUAL -->/a <img src=\"./shooter.gif?v=${TIMESTAMP}\" width=\"100%\" />" README.md
           sed -i '/<!-- START_SKILLS -->/,/<!-- END_SKILLS -->/{//!d;}' README.md
-          sed -i "/<!-- START_SKILLS -->/a <div align=\"center\"><img src=\"./animated-skills.svg?v=${TIMESTAMP}\" width=\"498\" /></div><br><br>" README.md
+          python3 - <<'PYEOF'
+          import re
+          
+          skills_block = """<div align="center"><img src="./animated-skills.svg?v=${TIMESTAMP}" width="498" /></div><br>
+          
+          <div align="center">
+          
+          | | |
+          |---|---|
+          | **Languages** | Python · TypeScript · Java · SQL |
+          | **Frontend** | React · React Native · Expo · Tailwind · Vite |
+          | **AI/ML** | Gemini · Whisper · LangChain · SentenceTransformers · RAG |
+          | **Backend** | Node.js · Electron · Firebase · SQLite · PostgreSQL |
+          | **DevOps** | GitHub Actions · Docker · Vercel |
+          
+          </div><br>"""
+          
+          import os, subprocess
+          timestamp = subprocess.check_output(['date', '+%s']).decode().strip()
+          skills_block = skills_block.replace('${TIMESTAMP}', timestamp)
+          
+          with open('README.md', 'r') as f:
+              content = f.read()
+          
+          content = re.sub(
+              r'(<!-- START_SKILLS -->).*?(<!-- END_SKILLS -->)',
+              r'\1\n' + skills_block + r'\n\2',
+              content,
+              flags=re.DOTALL
+          )
+          
+          with open('README.md', 'w') as f:
+              f.write(content)
+          PYEOF
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "🚀 Deploying evening entertainment [shooter]"
           git push
-

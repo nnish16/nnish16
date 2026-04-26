@@ -3,7 +3,7 @@ import re
 import sys
 
 def main():
-    url = "https://skillicons.dev/icons?i=ts,swift,py,js,java,cpp,html,css,go,react,nodejs,vite,mongodb,postgres,docker,git,rust,bash&theme=dark&perline=9"
+    url = "https://skillicons.dev/icons?i=py,ts,java,mysql,react,tailwind,vite,openai,pytorch,tensorflow,nodejs,electron,firebase,sqlite,postgres,githubactions,docker,vercel&theme=dark&perline=9"
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     try:
         with urllib.request.urlopen(req) as response:
