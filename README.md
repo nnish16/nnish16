@@ -61,5 +61,5 @@ I work at the **overlap of AI product thinking and full-stack execution**: defin
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./shooter.gif?v=1792474890" width="100%" />
+<img src="./snake.svg?v=1792533963" width="100%" />
 <!-- END_VISUAL -->
