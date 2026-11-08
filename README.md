@@ -45,7 +45,7 @@ I work at the **overlap of AI product thinking and full-stack execution**: defin
 ---
 
 <!-- START_SKILLS -->
-<div align="center"><img src="./animated-skills.svg?v=1794034285" width="498" /></div><br>
+<div align="center"><img src="./animated-skills.svg?v=1794121018" width="498" /></div><br>
 
 <div align="center">
 
@@ -61,5 +61,5 @@ I work at the **overlap of AI product thinking and full-stack execution**: defin
 <!-- END_SKILLS -->
 
 <!-- START_VISUAL -->
-<img src="./snake.svg?v=1794090528" width="100%" />
+<img src="./shooter.gif?v=1794121018" width="100%" />
 <!-- END_VISUAL -->
